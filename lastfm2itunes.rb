@@ -14,6 +14,7 @@ if logFile
 end
 
 require 'open-uri'
+require 'csv'
 require 'nokogiri' rescue "This script depends on the Nokogiri gem. Please run '(sudo) gem install nokogiri'."
 require 'appscript' rescue "This script depends on the rb-appscript gem. Please run '(sudo) gem install rb-appscript'."
 include Appscript
@@ -77,6 +78,7 @@ rescue
   end
 end
 
+missing = {}
 iTunes = app('iTunes')
 iTunes.tracks.get.each do |track|
   begin
@@ -98,7 +100,20 @@ iTunes.tracks.get.each do |track|
     else
       puts "Track #{track.artist.get} - #{track.name.get} is chill at playcount of #{playcount}"
     end
+    if playcounts[filter_name(track.artist.get)].length < 2
+      playcounts.delete(filter_name(track.artist.get))
+    else
+      playcounts[filter_name(track.artist.get)].delete(filter_name(track.name.get))
+    end
   rescue
     puts "Encountered some kind of error on this track"
+  end
+end
+
+CSV.open('missing.csv', 'w') do |csv_object|
+  playcounts.each do |artist, tracks|
+    tracks.each do |tname, pc|
+      csv_object << [artist, tname, pc]
+    end
   end
 end
