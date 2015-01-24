@@ -4,7 +4,14 @@
 #  The utility only updates tracks for which the last.fm play count is greater than the iTunes play count.
 # Because of how cool the AppleScript hooks are, watch your iTunes libary as this script works!
 
-username = ARGV.first
+username = ARGV.pop
+logFile = ARGV.pop
+options = ARGV
+
+# Redirect errors to log file if filename is provided
+if logFile
+  $stdout = File.new(logFile, 'w')
+end
 
 require 'open-uri'
 require 'nokogiri' rescue "This script depends on the Nokogiri gem. Please run '(sudo) gem install nokogiri'."
@@ -39,7 +46,13 @@ rescue
   puts "No cached playcount data, grabbing fresh data from Last.fm"
   playcounts = {}
 
-  Nokogiri::HTML(open("http://ws.audioscrobbler.com/2.0/user/#{username}/weeklychartlist.xml")).search('weeklychartlist').search('chart').each do |chartinfo|
+  begin
+    charlist = Nokogiri::HTML(open("http://ws.audioscrobbler.com/2.0/user/#{username}/weeklychartlist.xml"))
+  rescue
+    abort "No user found with username #{username}"
+  end
+
+  charlist.search('weeklychartlist').search('chart').each do |chartinfo|
     from = chartinfo['from']
     to = chartinfo['to']
     time = Time.at(from.to_i)
